@@ -1,0 +1,4 @@
+#ignore DS_Store
+.DS_Store 
+#ignore Yelp API file
+yelp_api_key.R

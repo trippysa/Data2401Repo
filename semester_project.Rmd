@@ -1,0 +1,71 @@
+---
+title: "Semester Project"
+author: "Stephen Trippy"
+date: "4/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("jsonlite")
+#install.packages("httr")
+
+library("jsonlite")
+library("httr")
+library("dplyr")
+```
+
+```{r}
+#Loading the API key from a separate file
+source("yelp_api_key.R") #allows yelp_key to be available
+
+#make GET request, using API key as a header
+base_uri <- "https://api.yelp.com/v3"
+endpoint <- "/businesses/search"
+search_uri <- paste0(base_uri, endpoint)
+
+query_params <- list(
+  term = "Restaurants",
+  location = "Houston, TX", 
+  sort_by = "rating",
+  limit = 50,
+  radius = 5000
+)
+
+response <- GET(
+  search_uri, 
+  query = query_params, 
+  add_headers(Authorization = paste("bearer", yelp_key))
+)
+```
+
+```{r}
+response_text <- content(response, type = "text")
+response_data <- fromJSON(response_text)
+
+names(response_data)
+
+restaurants <- flatten(response_data$businesses)
+
+```
+
+```{r}
+restaurants %>% 
+  select(name, rating, review_count, price, is_closed, categories, transactions) %>% 
+  filter(price == "$" | price == "$$") %>% 
+  arrange(price) %>% 
+  filter(name == "Oporto Fooding House & Wine") %>% 
+  select(transactions) %>% 
+  pull()
+
+restaurants %>% 
+  select(name, price)
+
+restaurants %>% 
+  filter(name == "Oporto Fooding House & Wine") %>% 
+  select(categories) %>% 
+  pull()
+```
