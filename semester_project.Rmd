@@ -16,6 +16,37 @@ knitr::opts_chunk$set(echo = TRUE)
 library("jsonlite")
 library("httr")
 library("dplyr")
+library("readxl")
+```
+
+# Creating vector of Harris County Zip codes
+
+This will allow us to query restaurants by zip code. Zip code data was copied from
+https://www.zillow.com/browse/homes/tx/harris-county/
+and pasted into a .csv file
+
+Before doing this, we must make sure that the csv file is in our working directory
+```{r}
+#make sure that source file location is the working directory
+harris_zips <- read.csv('harris_zipcodes.csv')
+```
+
+Next, we read in census data, which is taken from 2006-2010. While unfortunately the api data is current, we can make a decent assumption that wealth levels per zip code have not changed too much
+
+Census data was sourced from:
+https://www.psc.isr.umich.edu/dis/census/Features/tract2zip/
+
+```{r}
+zip_demographic_data <- read_excel('zipcode_census_data.xlsx', sheet = 'nation', na = ".") %>% 
+  rename(zip_code = Zip)
+harris_data_by_zip <- left_join(harris_zips, zip_demographic_data, by = 'zip_code')
+```
+
+Let's play around with the data we've just gotten
+```{r}
+harris_data_by_zip %>% 
+  arrange(desc(Median)) %>% 
+  head(15)
 ```
 
 ```{r}
@@ -27,12 +58,14 @@ base_uri <- "https://api.yelp.com/v3"
 endpoint <- "/businesses/search"
 search_uri <- paste0(base_uri, endpoint)
 
+
+
 query_params <- list(
   term = "Restaurants",
   location = "Houston, TX", 
-  sort_by = "rating",
-  limit = 50,
-  radius = 5000
+  categories = "tapasmallplates",
+  #sort_by = "rating", #this will filter out results with very few or low ratings
+  limit = 50
 )
 
 response <- GET(
@@ -54,12 +87,12 @@ restaurants <- flatten(response_data$businesses)
 
 ```{r}
 restaurants %>% 
-  select(name, rating, review_count, price, is_closed, categories, transactions) %>% 
-  filter(price == "$" | price == "$$") %>% 
-  arrange(price) %>% 
-  filter(name == "Oporto Fooding House & Wine") %>% 
-  select(transactions) %>% 
-  pull()
+  select(name, rating, review_count, price, is_closed, categories, transactions, location.address1) %>% 
+  unnest(categories) %>% #this function pulls categories into separate row entries for each business
+  arrange(name) %>% 
+  filter(alias == "tapasmallplates")
+  #filter(price == "$" | price == "$$") %>% 
+  #arrange(price)
 
 restaurants %>% 
   select(name, price)
