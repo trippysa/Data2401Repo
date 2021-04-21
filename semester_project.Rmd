@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+
 #install.packages("jsonlite")
 #install.packages("httr")
 
@@ -17,6 +18,8 @@ library("jsonlite")
 library("httr")
 library("dplyr")
 library("readxl")
+library("tidyr")
+
 ```
 
 # Creating vector of Harris County Zip codes
@@ -39,7 +42,8 @@ https://www.psc.isr.umich.edu/dis/census/Features/tract2zip/
 ```{r}
 zip_demographic_data <- read_excel('zipcode_census_data.xlsx', sheet = 'nation', na = ".") %>% 
   rename(zip_code = Zip)
-harris_data_by_zip <- left_join(harris_zips, zip_demographic_data, by = 'zip_code')
+harris_data_by_zip <- inner_join(harris_zips, zip_demographic_data, by = 'zip_code')
+#some of the zip codes in harris_zips had no demographic data, so i decided to inner_join. I could left join though, if I really felt like keeping all of the restaurant data
 ```
 
 Let's play around with the data we've just gotten
@@ -58,31 +62,62 @@ base_uri <- "https://api.yelp.com/v3"
 endpoint <- "/businesses/search"
 search_uri <- paste0(base_uri, endpoint)
 
+```
 
 
-query_params <- list(
-  term = "Restaurants",
-  location = "Houston, TX", 
-  categories = "tapasmallplates",
-  #sort_by = "rating", #this will filter out results with very few or low ratings
-  limit = 50
-)
+Now, we prepare to query
+```{r}
 
-response <- GET(
-  search_uri, 
-  query = query_params, 
-  add_headers(Authorization = paste("bearer", yelp_key))
-)
+#THE ACTUAL FOR LOOP I'LL NEED
+#for(i in 1:length(harris_zips$zip_code)){#function_body}
+
+restaurant_list = list()
+
+#THE 'TEST' FOR LOOP I'LL BE USING
+for(i in 1:3){
+  
+  offset_counter <- 1
+  restaurant_length <- 50
+  
+  while(restaurant_length >= 50){
+    location_query <- harris_zips$zip_code[i]
+
+    query_params <- list(
+      term = "Restaurants",
+      location = location_query, #need to find a way to iterate location query by zip
+      #sort_by = "rating", #this will filter out results with very few or low ratings
+      #use a while loop to break loop if less than 50 results are returned
+      limit = 50,
+      offset = offset_counter
+    )
+
+    response <- GET(
+      search_uri, 
+      query = query_params, 
+      add_headers(Authorization = paste("bearer", yelp_key))
+    )
+
+    response_text <- content(response, type = "text")
+    response_data <- fromJSON(response_text)
+
+    #don't think I need this...
+    #names(response_data)
+
+    restaurants <- flatten(response_data$businesses)
+    #I need to find a way to add the restaurants data to some sort of database
+  
+    restaurant_list[[i]] <- restaurants
+    
+    restaurant_length <- nrow(restaurants)
+    offset_counter <- offset_counter + 50
+  }
+  
+}
 ```
 
 ```{r}
-response_text <- content(response, type = "text")
-response_data <- fromJSON(response_text)
-
-names(response_data)
-
-restaurants <- flatten(response_data$businesses)
-
+masterlist <-bind_rows(datalist)
+#restaurants %>% select(name, location.zip_code, location.city)
 ```
 
 ```{r}
