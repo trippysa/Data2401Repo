@@ -2,3 +2,9 @@
 .DS_Store 
 #ignore Yelp API file
 yelp_api_key.R
+#ignore sample funcitons script I'm saving for testing
+sample_functions.R
+#ignore the .Rhistory file
+.Rhistory
+#ignore the .Rdata file
+.Rdata

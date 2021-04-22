@@ -9,10 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Libraries! I need a few:
 ```{r}
-
-#install.packages("jsonlite")
-#install.packages("httr")
 
 library("jsonlite")
 library("httr")
@@ -30,7 +28,6 @@ and pasted into a .csv file
 
 Before doing this, we must make sure that the csv file is in our working directory
 ```{r}
-#make sure that source file location is the working directory
 harris_zips <- read.csv('harris_zipcodes.csv')
 ```
 
@@ -40,10 +37,14 @@ Census data was sourced from:
 https://www.psc.isr.umich.edu/dis/census/Features/tract2zip/
 
 ```{r}
+#read the demographic data in. cells with no data are marked with a '.'
+
 zip_demographic_data <- read_excel('zipcode_census_data.xlsx', sheet = 'nation', na = ".") %>% 
   rename(zip_code = Zip)
 harris_data_by_zip <- inner_join(harris_zips, zip_demographic_data, by = 'zip_code')
-#some of the zip codes in harris_zips had no demographic data, so i decided to inner_join. I could left join though, if I really felt like keeping all of the restaurant data
+
+#Some of the zip codes in harris_zips had no demographic data, so i decided to inner_join. 
+#I could left join though, if I really felt like keeping all of the restaurant data from these zip codes
 ```
 
 Let's play around with the data we've just gotten
@@ -51,13 +52,15 @@ Let's play around with the data we've just gotten
 harris_data_by_zip %>% 
   arrange(desc(Median)) %>% 
   head(15)
+
+#small sample of the 15 wealthiest zip codes by median income in Harris county. Neat!
 ```
 
 ```{r}
 #Loading the API key from a separate file
 source("yelp_api_key.R") #allows yelp_key to be available
 
-#make GET request, using API key as a header
+#info in order to make GET request, using API key as a header
 base_uri <- "https://api.yelp.com/v3"
 endpoint <- "/businesses/search"
 search_uri <- paste0(base_uri, endpoint)
@@ -65,22 +68,28 @@ search_uri <- paste0(base_uri, endpoint)
 ```
 
 
-Now, we prepare to query
+Now, we prepare to query. My original plan was to cycle through every zip code in Harris county, pulling as many restaurants as there were from each zip code. 
+
+However, there seems to be a problem with the yelp api. When I tried to query by one particular zip code, restaurants from other zip codes would get pulled back.
+
+My new plan is to just pull as many restaurants as I can within a certain radius of Houston. This won't really answer my initial quesition, but it may 
 ```{r}
+
+restaurant_list = list()
 
 #THE ACTUAL FOR LOOP I'LL NEED
 #for(i in 1:length(harris_zips$zip_code)){#function_body}
 
-restaurant_list = list()
-
 #THE 'TEST' FOR LOOP I'LL BE USING
 for(i in 1:3){
   
+  #the offset determines which results based on a certain query are returned.
+  #Increasing the offset counter should return a new set of results with each query
   offset_counter <- 1
   restaurant_length <- 50
   
-  while(restaurant_length >= 50){
-    location_query <- harris_zips$zip_code[i]
+  while(restaurant_length >= 50){ #this loop will break if less than 50 restaurants are returned
+    location_query <- harris_data_by_zip$zip_code[i] #queries zip code based on position in the harris_data_by_zip file
 
     query_params <- list(
       term = "Restaurants",
@@ -100,40 +109,23 @@ for(i in 1:3){
     response_text <- content(response, type = "text")
     response_data <- fromJSON(response_text)
 
-    #don't think I need this...
-    #names(response_data)
-
     restaurants <- flatten(response_data$businesses)
-    #I need to find a way to add the restaurants data to some sort of database
   
+    #each set of restaurants pulled is added to the restaurant list
     restaurant_list[[i]] <- restaurants
     
     restaurant_length <- nrow(restaurants)
     offset_counter <- offset_counter + 50
   }
   
+ #Test code, ignore
+  #restaurants %>% select(name, location.zip_code) %>% filter(location.zip_code == 77002) %>% arrange(location.zip_code)
 }
 ```
 
 ```{r}
+#if working, this code would compile all listed dataframes into a master dataframe, containing many restaurants
+
 masterlist <-bind_rows(datalist)
-#restaurants %>% select(name, location.zip_code, location.city)
 ```
 
-```{r}
-restaurants %>% 
-  select(name, rating, review_count, price, is_closed, categories, transactions, location.address1) %>% 
-  unnest(categories) %>% #this function pulls categories into separate row entries for each business
-  arrange(name) %>% 
-  filter(alias == "tapasmallplates")
-  #filter(price == "$" | price == "$$") %>% 
-  #arrange(price)
-
-restaurants %>% 
-  select(name, price)
-
-restaurants %>% 
-  filter(name == "Oporto Fooding House & Wine") %>% 
-  select(categories) %>% 
-  pull()
-```
