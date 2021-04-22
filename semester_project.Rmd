@@ -12,9 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 Libraries! I need a few:
 ```{r}
 
+library("dplyr")
 library("jsonlite")
 library("httr")
-library("dplyr")
 library("readxl")
 library("tidyr")
 
@@ -72,7 +72,8 @@ Now, we prepare to query. My original plan was to cycle through every zip code i
 
 However, there seems to be a problem with the yelp api. When I tried to query by one particular zip code, restaurants from other zip codes would get pulled back.
 
-My new plan is to just pull as many restaurants as I can within a certain radius of Houston. This won't really answer my initial quesition, but it may 
+My new plan is to just pull as many restaurants as I can within a certain radius of Houston. This won't really answer my initial quesition, but it may still give me some worthwhile data
+
 ```{r}
 
 restaurant_list = list()
@@ -129,3 +130,73 @@ for(i in 1:3){
 masterlist <-bind_rows(datalist)
 ```
 
+```{r}
+
+restaurant_list = list()
+
+#THE 'TEST' FOR LOOP I'LL BE USING
+offset_counter <- 1
+results_returned <- 50
+for(i in 1:20){
+  if (offset_counter == 951 ){
+    results_returned <- 49
+  }else{
+    results_returned <- 50
+  }
+    query_params <- list(
+      term = "Restaurants",
+      location = "Houston, TX", #need to find a way to iterate location query by zip
+      #sort_by = "rating", #this will filter out results with very few or low ratings
+      #use a while loop to break loop if less than 50 results are returned
+      #sort_by = "distance",
+      limit = results_returned,
+      offset = offset_counter
+    )
+
+    response <- GET(
+      search_uri, 
+      query = query_params, 
+      add_headers(Authorization = paste("bearer", yelp_key))
+    )
+
+    response_text <- content(response, type = "text")
+    response_data <- fromJSON(response_text)
+
+    restaurants <- flatten(response_data$businesses)
+  
+    #each set of restaurants pulled is added to the restaurant list
+    restaurant_list[[i]] <- restaurants
+  
+    offset_counter <- offset_counter + 50
+  
+  
+ #Test code, ignore
+  #restaurants %>% select(name, location.zip_code) %>% filter(location.zip_code == 77002) %>% arrange(location.zip_code)
+}
+
+```
+
+
+```{r}
+#if working, this code would compile all listed dataframes into a master dataframe, containing many restaurants
+
+masterlist <-bind_rows(restaurant_list)
+```
+
+```{r}
+#are there any cities (Not Houston) That get returned?
+masterlist$location.city %>% 
+  unique()
+
+#looks like a few do for some reason
+masterlist %>% 
+  filter(location.city == "Carle Place" | location.city == "New York" | location.city == "HOUSTON" | location.city == "Bellaire") %>% 
+  select(name, location.city, location.address1)
+
+```
+
+One thing I'm worried about is that I might not want to limit myself to restaurants within 'Houston.' As a result, maybe it'll be better to search restaurants within a certain radius of Houston, using the coordinates of Houston as a center point and then sort_by distance
+
+```{r}
+
+```
