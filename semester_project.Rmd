@@ -19,7 +19,9 @@ library("tidyr")
 library("ggplot2")
 ```
 
-# Creating vector of Harris County Zip codes
+#Part 1: Building the Dataset
+
+## Creating vector of Harris County Zip codes
 
 This will allow us to query restaurants by zip code. Zip code data was copied from
 https://www.zillow.com/browse/homes/tx/harris-county/
@@ -30,7 +32,11 @@ Before doing this, we must make sure that the csv file is in our working directo
 harris_zips <- read.csv('harris_zipcodes.csv')
 ```
 
+## Reading in Census Data
+
 Next, we read in census data, which is taken from 2006-2010. While unfortunately the api data is current, we can make a decent assumption that wealth levels per zip code have not changed too much
+
+An added benefit of using census data is that this will give us a list of *only valid* zip codes. *i.e. when we query, we will only be using valid zip codes that won't break the process* 
 
 Census data was sourced from:
 https://www.psc.isr.umich.edu/dis/census/Features/tract2zip/
@@ -50,11 +56,14 @@ Let's play around with the data we've just gotten
 ```{r}
 harris_data_by_zip %>% 
   arrange(desc(Median)) %>% 
-  head(15)
+  head(10)
 
-#small sample of the 15 wealthiest zip codes by median income in Harris county. Neat!
+#small sample of the 10 wealthiest zip codes by median income in Harris county. Neat!
 ```
 
+## Preparing the URI
+
+We now prepare the address we'll be using to query. I have a personal API key, which is stored in a separate file. However, this code is usable for anyone with an API Key who prepares their own "yelp_api_key.R" file 
 ```{r}
 #Loading the API key from a separate file
 source("yelp_api_key.R") #allows yelp_key to be available
@@ -66,12 +75,17 @@ search_uri <- paste0(base_uri, endpoint)
 
 ```
 
+## Unleashing the Beast
 
-Now, we prepare to query. My original plan was to cycle through every zip code in Harris county, pulling as many restaurants as there were from each zip code. 
+Now, we prepare to query. My plan is to cycle through every zip code in Harris county, pulling as many restaurants as there are from each zip code. 
 
-However, there seems to be a problem with the yelp api. When I tried to query by one particular zip code, restaurants from other zip codes would get pulled back.
+There are, however, 2 problems with this approach:
 
-My new plan is to just pull as many restaurants as I can within a certain radius of Houston. This won't really answer my initial quesition, but it may still give me some worthwhile data
+- 1. The yelp api doesn't return data the way I'd like it to. When I tried to query by one particular zip code, restaurants from other zip codes would get pulled back. I attribute this to the fact if you are located in a certain zip code, yelp would want to show you nearby restaurants from different zip codes
+  - Solution: I figure that if I pull enough restaurants, the overlap between zip code queries will be enough to make a representative sample. **Note: This is an inherently flawed assumption, but I will be using it regardless to compile my dataset**
+
+- 2. Problems with my nested 'for loop' breaking: Initially, my plan was to cycle through each zip code until I compiled what I thought would be a representative sample of restaurants. However, my loops broke, and I was only able to get a one-time max of 50 results per zip code. 
+  - Solution: I'm just going to have to work with the limit I have. Unfortunately, results may be excluded based on whatever parameters the yelp database decides merits a return. Nonetheless, I believe I may still get a representative sample
 
 ```{r}
 zip_restaurant_list = list()
@@ -80,18 +94,11 @@ restaurant_list = list()
 for(j in 1:length(harris_data_by_zip$zip_code)){
   zip_code_n <- harris_data_by_zip$zip_code[j]
   
-offset_counter <- 1
-results_returned <- 50
-
-#making the somewhat arbitrary decision to return a maximum of 250 results per zip code. I think that this is a good enough amount to get a decent sample of each zip in Harris County, assuming yelp shows us the correct zips
-
-#for(i in 1:2){
-  
     query_params <- list(
       term = "Restaurants",
       location = zip_code_n,
       sort_by = "distance",
-      limit = results_returned
+      limit = 50
       #offset = offset_counter
     )
     response <- GET(
@@ -105,18 +112,14 @@ results_returned <- 50
   
     #each set of restaurants pulled is added to the restaurant list
     restaurant_list[[j]] <- restaurants
-  
-    #offset_counter <- offset_counter + 50
-  
-#}
-#zip_n_list <- bind_rows(restaurant_list)
-#zip_restaurant_list[[j]] <- zip_n_list
 }
 ```
 
+## Compiling our data
+
+We have our restaurant data! However, it's spread out across about 134 lists, with a fair bit of overlapping data. The next step is to combine all these lists into one dataset.
 
 ```{r}
-#if working, this code would compile all listed dataframes into a master dataframe, containing many restaurants
 
 #take all of the data we've just extracted. Now bind it into one masterlist
 masterlist <-bind_rows(restaurant_list) 
@@ -124,44 +127,39 @@ masterlist <-bind_rows(restaurant_list)
 #remove the duplicate restaurants (each restaurant should have a unique id)
 masterlist <- masterlist[!duplicated(masterlist$id), ]
 
+#renaming the zip code column will make it so that we can join with the harris_data_by_zip dataset later. We also set this variable's type to double for the same reason
 masterlist <- masterlist %>% rename(zip_code = location.zip_code) 
 masterlist$zip_code <- as.double(masterlist$zip_code)
+```
 
+
+# Part 2: Answering the questions
+```{r}
+#just some sample code to see where we're at
 masterlist %>% 
   arrange() %>% 
   select(zip_code, location.city)
 
+#A join that's very narrow in scope. This allows us to see how many restaurants are present in each zip code, and combines it with the zip code demographic data
 joined_masterlist <- masterlist %>% 
   group_by(zip_code) %>% 
   count() %>% 
   right_join(harris_data_by_zip, by = "zip_code")
 
+#Some more sample code: we take the zip code 
 joined_masterlist %>% 
   arrange(desc(Median)) %>% 
   head(10)
-
-#joined_masterlist %>% 
-  #ggplot(aes(n)) + geom_density()
 ```
 
+
 ```{r}
-#a peek at the masterlist
-masterlist %>%
-  select(name, location.zip_code)
-
-#are there any cities (Not Houston) That get returned?
-masterlist$location.city %>% 
-  unique()
-
-#looks like a few do for some reason
 masterlist %>% 
-  filter(location.city == "Carle Place" | location.city == "New York" | location.city == "HOUSTON" | location.city == "Bellaire") %>% 
-  select(name, location.city, location.address1)
+  filter(location.city == "New York")
+unique(masterlist$location.city)
 
-```
-
-One thing I'm worried about is that I might not want to limit myself to restaurants within 'Houston.' As a result, maybe it'll be better to search restaurants within a certain radius of Houston, using the coordinates of Houston as a center point and then sort_by distance
-
-```{r}
-
+masterlist %>% 
+  filter(name == "Brass Tacks") %>% 
+  select(categories) %>% 
+  pull()
 ```

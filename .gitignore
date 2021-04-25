@@ -1,5 +1,5 @@
 #ignore DS_Store
-.DS_Store 
+.DS_Store
 #ignore Yelp API file
 yelp_api_key.R
 #ignore sample funcitons script I'm saving for testing
@@ -8,3 +8,7 @@ sample_functions.R
 .Rhistory
 #ignore the .Rdata file
 .Rdata
+#ignore the test file for Rmarkdown knits
+RMarkdown_Test.Rmd
+#ignore any html files created by knitting the test file
+RMarkdown_Test.html
