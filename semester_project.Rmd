@@ -18,8 +18,18 @@ library("readxl")
 library("tidyr")
 library("ggplot2")
 ```
+# Introduction
 
-#Part 1: Building the Dataset
+The questions I hope to answer:
+- Does the average price of restaurants in a given zip code correlate with median income in that zip code?
+- Using review count as a proxy for age, are there certain zip codes that stand out as having older restaurants? Does this correlate with the population of said zip codes?
+- Can we map the distribution of the following categories of restaurants?
+  - Fast Food
+  - Steakhouse
+  - Chinese
+- Can we map the distribution of expensive restaurants?
+
+# Part 1: Building the Dataset
 
 ## Creating vector of Harris County Zip codes
 
@@ -120,7 +130,6 @@ for(j in 1:length(harris_data_by_zip$zip_code)){
 We have our restaurant data! However, it's spread out across about 134 lists, with a fair bit of overlapping data. The next step is to combine all these lists into one dataset.
 
 ```{r}
-
 #take all of the data we've just extracted. Now bind it into one masterlist
 masterlist <-bind_rows(restaurant_list) 
 
@@ -132,6 +141,14 @@ masterlist <- masterlist %>% rename(zip_code = location.zip_code)
 masterlist$zip_code <- as.double(masterlist$zip_code)
 ```
 
+This ugly bit of code is the final step of data cleaning. We turn the price variable into data we can work with
+```{r}
+masterlist$price[masterlist$price == "$"] <- 1
+masterlist$price[masterlist$price == "$$"] <- 2
+masterlist$price[masterlist$price == "$$$"] <- 3
+masterlist$price[masterlist$price == "$$$$"] <- 4
+masterlist$price <- as.double(masterlist$price)
+```
 
 # Part 2: Answering the questions
 ```{r}
@@ -162,4 +179,6 @@ masterlist %>%
   filter(name == "Brass Tacks") %>% 
   select(categories) %>% 
   pull()
+
+
 ```
