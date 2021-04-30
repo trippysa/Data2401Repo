@@ -9,7 +9,22 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Libraries! I need a few:
+# Introduction
+
+Say hello to Yelp Fusion! This is an API with excellent documentation that essentially allows access to any restaurant in Houston. However, there are limits on the number of restaurants I can pull in any one request, and the search algorithm itself is a bit of a black box. Thus, getting all the data needed to answer meaningful questions becomes a puzzle, one that I'll do my best to solve over the course of this project. In cleaning and manipulating the data, I hope to answer the following questions: 
+
+- Does the average price of restaurants in a given zip code correlate with median income in that zip code? Can we infer why or why not?
+- Using review count as a proxy for age, are there certain zip codes that stand out as having older restaurants? Does this correlate with the population of said zip codes?
+- Can we accurately map the distribution of the following categories of restaurants?
+  - Fast Food
+  - Steakhouse
+  - Chinese
+- Can we accurately map the distribution of expensive restaurants?
+
+Along the way, we'll learn more about the Yelp API, and how to access APIs in general
+
+##Libraries! I need a few:
+
 ```{r}
 library("dplyr")
 library("jsonlite")
@@ -17,17 +32,9 @@ library("httr")
 library("readxl")
 library("tidyr")
 library("ggplot2")
+library("ggmap")
+library("maps")
 ```
-# Introduction
-
-The questions I hope to answer:
-- Does the average price of restaurants in a given zip code correlate with median income in that zip code?
-- Using review count as a proxy for age, are there certain zip codes that stand out as having older restaurants? Does this correlate with the population of said zip codes?
-- Can we map the distribution of the following categories of restaurants?
-  - Fast Food
-  - Steakhouse
-  - Chinese
-- Can we map the distribution of expensive restaurants?
 
 # Part 1: Building the Dataset
 
@@ -73,7 +80,13 @@ harris_data_by_zip %>%
 
 ## Preparing the URI
 
-We now prepare the address we'll be using to query. I have a personal API key, which is stored in a separate file. However, this code is usable for anyone with an API Key who prepares their own "yelp_api_key.R" file 
+We now prepare the address we'll be using to query. I have a personal API key, which is stored in a separate file. If you wish to reproduce this code, you'll need to file a Fusion application and provide your own "yelp_api_key.R" file 
+
+The format of this file should be: 
+
+client_ID <- "Your_Application_ID"
+yelp_key <- "Your_Yelp_Key"
+
 ```{r}
 #Loading the API key from a separate file
 source("yelp_api_key.R") #allows yelp_key to be available
@@ -143,11 +156,13 @@ masterlist$zip_code <- as.double(masterlist$zip_code)
 
 This ugly bit of code is the final step of data cleaning. We turn the price variable into data we can work with
 ```{r}
+
 masterlist$price[masterlist$price == "$"] <- 1
 masterlist$price[masterlist$price == "$$"] <- 2
 masterlist$price[masterlist$price == "$$$"] <- 3
 masterlist$price[masterlist$price == "$$$$"] <- 4
 masterlist$price <- as.double(masterlist$price)
+
 ```
 
 # Part 2: Answering the questions
@@ -169,16 +184,36 @@ joined_masterlist %>%
   head(10)
 ```
 
-
+Does the average price of restaurants in a given zip code correlate with median income in that zip code? Can we infer why or why not?
 ```{r}
-masterlist %>% 
-  filter(location.city == "New York")
-unique(masterlist$location.city)
 
-masterlist %>% 
-  filter(name == "Brass Tacks") %>% 
-  select(categories) %>% 
-  pull()
+zip_data_sublist <- masterlist %>% 
+  group_by(zip_code) %>% 
+  filter(n() >= 10) %>% #10 was chosen somewhat arbitrarily...
+  summarize(restaurant_price = mean(price, na.rm = TRUE)) %>% 
+  right_join(harris_data_by_zip, by = "zip_code")
 
+median_price_coeff <- cor(zip_data_sublist$restaurant_price, zip_data_sublist$Median, 
+    use = "pairwise.complete.obs") 
+#The 'use' command here omits NA results, I believe)
+
+zip_data_sublist %>% 
+  ggplot(aes(restaurant_price, y = Median)) + 
+  geom_point(alpha = 0.5, color = "purple") + 
+  labs(x = "Restaurant Price", y = "Zip Code Median Income",
+       subtitle = paste("Correlation coefficient: ", median_price_coeff)) +
+  geom_smooth(method = 'lm', lwd = 0.75, se = FALSE, color = "purple")
 
 ```
+
+So with a correlation of just under 0.5, we're not looking at a super strong correlation between these two variables. Why might that be?
+
+I have one theory, and it's that the most expensive restaurants are located within the city, (Where many corporate offices are located) whereas most high-earners live in suburbs. Let's use 2 maps to test that.
+```{r}
+
+```
+
+
+
+The visualizations in this project were made possible by ggmap:
+D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The R Journal, 5(1), 144-161. URL http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
