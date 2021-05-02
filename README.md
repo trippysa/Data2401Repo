@@ -1,4 +1,4 @@
-# Semeseter Project
+# Semester Project
 ## Using Yelp Fusion and demographic data to draw conclusions about zip codes in Harris County
 
 A collection of code and files for my semester project on pulling Houston Restaurant Data from Yelp and integrating with census information by zip code
