@@ -15,10 +15,6 @@ Say hello to Yelp Fusion! This is an API with excellent documentation that essen
 
 - Does the average price of restaurants in a given zip code correlate with median income in that zip code? Can we infer why or why not?
 - Using review count as a proxy for age, are there certain zip codes that stand out as having older restaurants? Does this correlate with the population of said zip codes?
-- Can we accurately map the distribution of the following categories of restaurants?
-  - Fast Food
-  - Steakhouse
-  - Chinese
 - Can we accurately map the distribution of expensive restaurants?
 
 Along the way, we'll learn more about the Yelp API, and how to access APIs in general
@@ -34,6 +30,11 @@ library("tidyr")
 library("ggplot2")
 library("ggmap")
 library("maps")
+library("devtools")
+library("RCurl")
+library("sf")
+#install_github('arilamstein/choroplethrZip@v1.5.0')
+library("choroplethrZip")
 ```
 
 # Part 1: Building the Dataset
@@ -90,7 +91,6 @@ yelp_key <- "Your_Yelp_Key"
 ```{r}
 #Loading the API key from a separate file
 source("yelp_api_key.R") #allows yelp_key to be available
-
 #info in order to make GET request, using API key as a header
 base_uri <- "https://api.yelp.com/v3"
 endpoint <- "/businesses/search"
@@ -206,14 +206,26 @@ zip_data_sublist %>%
 
 ```
 
-So with a correlation of just under 0.5, we're not looking at a super strong correlation between these two variables. Why might that be?
+So with a correlation of just under 0.5, we are looking at a moderately strong correlation. I'm going to conclude that my theory holds!
 
-I have one theory, and it's that the most expensive restaurants are located within the city, (Where many corporate offices are located) whereas most high-earners live in suburbs. Let's use 2 maps to test that.
+I want to show this one other way: by mapping median income on one map and median restaurant price on another. To do this, I'll be using the choroplethrZip package.
 ```{r}
-
+harris_choropleth_data <- harris_data_by_zip #create a new dataframe for this test
+harris_choropleth_data$zip_code <- as.character(harris_choropleth_data$zip_code)
+harris_choropleth_data <- harris_choropleth_data %>% 
+  rename(region = zip_code, value = Median) %>% 
+  select(region, value)
+zip_choropleth(harris_choropleth_data, county_zoom = 48201)
 ```
 
-
+```{r}
+harris_choropleth_data <- zip_data_sublist #create a new dataframe for this test
+harris_choropleth_data$zip_code <- as.character(harris_choropleth_data$zip_code)
+harris_choropleth_data <- harris_choropleth_data %>% 
+  rename(region = zip_code, value = restaurant_price) %>% 
+  select(region, value)
+zip_choropleth(harris_choropleth_data, county_zoom = 48201)
+```
 
 The visualizations in this project were made possible by ggmap:
 D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The R Journal, 5(1), 144-161. URL http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
