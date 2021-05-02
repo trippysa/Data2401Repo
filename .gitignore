@@ -14,3 +14,7 @@ sample_functions.R
 RMarkdown_Test.Rmd
 #ignore any html files created by knitting the test file
 RMarkdown_Test.html
+#ignore the knitted files
+#I'm not sure whether either of these will end up containing my api keys, so just to be safe I'm marking them to be ignored
+semester_project.html
+semester_project.pdf
