@@ -18,3 +18,5 @@ RMarkdown_Test.html
 #I'm not sure whether either of these will end up containing my api keys, so just to be safe I'm marking them to be ignored
 semester_project.html
 semester_project.pdf
+#ignore the .md file of my project. I'll inclue a .pdf version as a final report
+semester_project.md

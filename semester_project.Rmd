@@ -4,11 +4,10 @@ author: "Stephen Trippy"
 date: "Spring 2021"
 output:
   pdf_document: default
-  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = TRUE)
 ```
 
 # Introduction
@@ -109,7 +108,11 @@ There are, however, 2 problems with this approach:
 - 2. Problems with my nested 'for loop' breaking: Initially, my plan was to cycle through each zip code until I compiled what I thought would be a representative sample of restaurants. However, my loops put me over the max requests, and I was only able to get a one-time max of 50 results per zip code. 
   - Solution: I'm just going to have to work with the limit I have. Unfortunately, results may be excluded based on whatever parameters the yelp database decides merits a return. Nonetheless, I believe I may still get a representative enough sample to answer my questions
 
-**Warning: You may find that while running this, you get an error with the flatten function. This seems like a somewhat arbitrary issue based on the time you run your query. Simply repeat the knit until it works.** 
+**Warning: You may find that while running this, you get an error with the flatten function:**
+
+> Error in flatten(response_data$businesses) : is.data.frame(x) is not TRUE
+
+**This seems like a somewhat arbitrary issue based on the time you run your query. Simply repeat the knit until it works.** 
 ```{r}
 zip_restaurant_list = list()
 restaurant_list = list()
