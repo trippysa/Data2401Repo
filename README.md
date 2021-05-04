@@ -11,3 +11,6 @@ This code is not without its issues! For one, the method I use to pull restauran
 - Some version of LaTeX is required to knit to pdf
 - Run using R version 4.0.5
 - Register for a Yelp Fusion API key at https://www.yelp.com/fusion
+
+# Reproducibility:
+I've found that over the course of running the semester_project.Rmd file, on occasion the API request fails and I'm left with incomplete data. For now, the solution to reproduce the results of the experiment seems to be just re-running the code until this works.
