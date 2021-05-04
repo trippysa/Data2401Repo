@@ -13,4 +13,4 @@ This code is not without its issues! For one, the method I use to pull restauran
 - Register for a Yelp Fusion API key at https://www.yelp.com/fusion
 
 # Reproducibility:
-I've found that over the course of running the semester_project.Rmd file, on occasion the API request fails and I'm left with incomplete data. For now, the solution to reproduce the results of the experiment seems to be just re-running the code until this works.
+I've found that over the course of running the semester_project.Rmd file, on occasion the API request fails and I'm left with incomplete data. (A good indicator of this is that the price choropleth map will be full of black (NAs)). For now, the solution to reproduce the results of the experiment seems to be just re-running the code until this works.
