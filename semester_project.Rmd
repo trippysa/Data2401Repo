@@ -1,7 +1,7 @@
 ---
 title: "Semester Project"
 author: "Stephen Trippy"
-date: "Spring 2021"
+date: "Data 2401 - Spring 2021"
 output:
   pdf_document: default
 ---
@@ -12,13 +12,14 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = TRU
 
 # Introduction
 
-Say hello to Yelp Fusion! This is an API with excellent documentation that essentially allows access to any restaurant in Houston. However, there are limits on the number of restaurants I can pull in any one request, and the search algorithm itself is a bit of a black box. Thus, getting all the data needed to answer meaningful questions becomes a puzzle, one that I'll do my best to solve over the course of this project. In cleaning and manipulating the data, I hope to answer the following question: Does the average price of restaurants in a given zip code correlate with median income in that zip code, and can we infer why or why not?
+Say hello to Yelp Fusion! This is an API with excellent documentation that allows access to almost any restaurant in the world. However, there are limits on the number of restaurants I can pull in any one request, and the search algorithm itself is a bit of a black box. Thus, getting all the data needed to answer meaningful questions becomes a puzzle, one that I'll do my best to solve over the course of this project. In cleaning and manipulating the data, I hope to answer the following question: Does the average price of restaurants in a given zip code in Harris County correlate with median income in that zip code, and can we infer why or why not?
 
 Along the way, we'll learn more about the Yelp API, and how to access APIs in general!
 
 ## Libraries! I need a few:
 
 ```{r}
+
 library("dplyr")
 library("jsonlite")
 library("httr")
@@ -85,6 +86,7 @@ We now prepare the address we'll be using to query. I have a personal API key, w
 The format of this file should be: 
 
 client_ID <- "Your_Application_ID"
+
 yelp_key <- "Your_Yelp_Key"
 
 ```{r}
@@ -98,7 +100,7 @@ search_uri <- paste0(base_uri, endpoint)
 
 ## Unleashing the Beast
 
-Now, we prepare to query. My plan is to cycle through every zip code in Harris county, pulling as many restaurants as there are from each zip code. 
+Now, we prepare to query. My plan is to cycle through every zip code in Harris county, pulling as many restaurants as there are available from each zip code. 
 
 There are, however, 2 problems with this approach:
 
@@ -108,21 +110,18 @@ There are, however, 2 problems with this approach:
 - 2. Problems with my nested 'for loop' breaking: Initially, my plan was to cycle through each zip code until I compiled what I thought would be a representative sample of restaurants. However, my loops put me over the max requests, and I was only able to get a one-time max of 50 results per zip code. 
   - Solution: I'm just going to have to work with the limit I have. Unfortunately, results may be excluded based on whatever parameters the yelp database decides merits a return. Nonetheless, I believe I may still get a representative enough sample to answer my questions
 
-**Warning: You may find that while running this, you get an error with the flatten function:**
-
-> Error in flatten(response_data$businesses) : is.data.frame(x) is not TRUE
-
-**This seems like a somewhat arbitrary issue based on the time you run your query. Simply repeat the knit until it works.** 
 ```{r}
 zip_restaurant_list = list()
 restaurant_list = list()
 
+#the following loop iterates through the list of valid zip codes
+#and sets the location query equal to each zip code in the list
 for(j in 1:length(harris_data_by_zip$zip_code)){
   zip_code_n <- harris_data_by_zip$zip_code[j]
   
     query_params <- list(
       term = "Restaurants",
-      location = zip_code_n,
+      location = zip_code_n, #zip code at position 'j' in the dataframe
       sort_by = "distance",
       limit = 50
     )
@@ -158,6 +157,13 @@ masterlist <- masterlist %>% rename(zip_code = location.zip_code)
 masterlist$zip_code <- as.double(masterlist$zip_code)
 ```
 
+So how many restaurants were we able to pull into this dataframe?
+```{r}
+nrow(masterlist)
+
+#not too bad!
+```
+
 This ugly bit of code is the final step of data cleaning. We turn the price variable into data we can work with
 ```{r}
 masterlist$price[masterlist$price == "$"] <- 1
@@ -170,6 +176,7 @@ masterlist$price <- as.double(masterlist$price)
 # Part 2: Answering the question
 
 Does the average price of restaurants in a given zip code correlate with median income in that zip code? Can we infer why or why not?
+
 ```{r}
 zip_data_sublist <- masterlist %>% 
   group_by(zip_code) %>% 
@@ -178,6 +185,7 @@ zip_data_sublist <- masterlist %>%
   summarize(restaurant_price = mean(price, na.rm = TRUE)) %>% 
   right_join(harris_data_by_zip, by = "zip_code")
 
+#find the correlation coefficient between restaurant price and median income
 median_price_coeff <- cor(zip_data_sublist$restaurant_price, zip_data_sublist$Median, 
     use = "pairwise.complete.obs") 
 #The 'use' command here omits NA results, I believe)
@@ -222,16 +230,16 @@ zip_choropleth(harris_choropleth_data,
 
 Visually, these two maps roughly reflect a correlation in median wealth and restaurant price per zip code. Not too surprisingly, restaurants tend to be more expensive in the middle of the city (Many upscale restaurants depend on corporate lunches and dinners for their business).
 
-We can see a crescent around downtown of lower-income zip codes, and this is reflected by lower average restaurant price.
+We can see a crescent around downtown Houston of lower-income zip codes, and this is reflected by lower average restaurant price.
 
 We can also see that to the west, northwest, and southeast, there are pockets of higher-income zip codes, and this is reflected by higher average restaurant price.
 
 # Final Thoughts
 
-One thing to note is that by using an API for our data, the numbers used will update in real time! For example, the correlation coefficient actually shifted a bit between queries over a couple of days.
+One thing to note is that by using an API for our data, the numbers used will update in real time! For example, the correlation coefficient actually shifted a bit between queries I ran over a couple of days.
 
-As previously mentioned, there are a few problems with the analysis that I did. For one, I have no way of knowing how yelp selects restaurants to show me, and while almost 6000 restaurants is a lot, it's nowhere near the total amount in Harris County. Also, I believe that certain areas inside the city may be misrepresented, as there are far more restaurants than could have been pulled. 
+As previously mentioned, there are a few problems with the analysis that I did. For one, I have no way of knowing how Yelp selects restaurants to show me, and while almost 6000 restaurants is a lot, it's nowhere near the total amount in Harris County. Also, I believe that certain areas inside the city may be misrepresented, as there are far more restaurants than could have been pulled.
 
-There are also so many questions that I wanted to ask about this data but didn't have time for, and will just have to wait for another project.
+There are also so many questions that I wanted to ask about this data but didn't have time for, and will just have to wait until another project.
 
-Overall though, I'm incredibly pleased with how this project turned out. 
+Overall however, I'm incredibly pleased with how this project turned out, and I hope this has proven interesting and insightful.
