@@ -24,3 +24,5 @@ final_presentation.Rmd
 final_presentation_backup.html
 #ignore the figure folder
 figure
+#ignore final presentation
+final_presentation.html
