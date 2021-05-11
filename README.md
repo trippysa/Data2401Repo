@@ -3,7 +3,7 @@
 
 A collection of code and files for my semester project on pulling Houston restaurant data from Yelp and integrating with census information by zip code. 
 
-A report of this project is available as 'semester_project.pdf' and was created at the time of its most recent commit.
+A report of this project is available as 'final_report.pdf' and was created at the time of its most recent commit.
  
 # Disclaimers
 This code is not without its issues! For one, the method I use to pull restaurants potentially underrepresents zip codes with large amounts of restaurants. While I believe we'll still be able to draw significant conclusions about each zip code, any such conclusions must be treated with a healthy amount of skepticism.
