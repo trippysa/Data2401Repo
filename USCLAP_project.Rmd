@@ -1,0 +1,33 @@
+---
+title: "Yelp API USCLAP"
+author: "Stephen Trippy"
+date: "6/12/2021"
+output: 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = TRUE)
+```
+
+Libraries
+```{r}
+#copied from previous projects
+
+library("dplyr")
+library("jsonlite")
+library("httr")
+library("readxl")
+library("tidyr")
+library("ggplot2")
+library("devtools")
+library("RCurl")
+library("sf")
+
+#install_github('arilamstein/choroplethrZip@v1.5.0')
+library("choroplethrZip")
+```
+
+```{r}
+county_codes <- read.csv("zcta_county_rel_10.csv", colClasses = c("ZCTA5" = "character")) #specifying read as character allows for first column to keep leading zeroes
+```
