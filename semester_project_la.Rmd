@@ -123,16 +123,16 @@ We have our restaurant data! However, it's spread out across about 134 lists, wi
 
 ```{r}
 #take all of the data we've just extracted. Now bind it into one masterlist
-masterlist <- bind_rows(restaurant_list) 
+la_masterlist <- bind_rows(restaurant_list) 
 
 #remove the duplicate restaurants (each restaurant should have a unique id)
-masterlist <- masterlist[!duplicated(masterlist$id), ]
+la_masterlist <- la_masterlist[!duplicated(la_masterlist$id), ]
 
 #renaming the zip code column will make it so that we can join with the
 #harris_data_by_zip dataset later. We also set this variable's type to double 
 #for the same reason
-masterlist <- masterlist %>% rename(zip_code = location.zip_code) 
-masterlist$zip_code <- as.double(masterlist$zip_code)
+la_masterlist <- la_masterlist %>% rename(zip_code = location.zip_code) 
+la_masterlist$zip_code <- as.double(la_masterlist$zip_code)
 ```
 
 So how many restaurants were we able to pull into this dataframe?
@@ -144,11 +144,11 @@ nrow(masterlist)
 
 This ugly bit of code is the final step of data cleaning. We turn the price variable into data we can work with
 ```{r}
-masterlist$price[masterlist$price == "$"] <- 1
-masterlist$price[masterlist$price == "$$"] <- 2
-masterlist$price[masterlist$price == "$$$"] <- 3
-masterlist$price[masterlist$price == "$$$$"] <- 4
-masterlist$price <- as.double(masterlist$price)
+la_masterlist$price[la_masterlist$price == "$"] <- 1
+la_masterlist$price[la_masterlist$price == "$$"] <- 2
+la_masterlist$price[la_masterlist$price == "$$$"] <- 3
+la_masterlist$price[la_masterlist$price == "$$$$"] <- 4
+la_masterlist$price <- as.double(la_masterlist$price)
 ```
 
 # Part 2: Answering the question
@@ -156,12 +156,12 @@ masterlist$price <- as.double(masterlist$price)
 Does the average price of restaurants in a given zip code correlate with median income in that zip code? Can we infer why or why not?
 
 ```{r}
-zip_data_sublist <- masterlist %>% 
-  group_by(zip_code) %>% 
+zip_data_sublist <- la_masterlist %>% 
+  group_by(Zip) %>% 
   filter(n() >= 10) %>% #10 was chosen somewhat arbitrarily, but excludes zip codes
   #with too few restaurants in them
   summarize(restaurant_price = mean(price, na.rm = TRUE)) %>% 
-  right_join(la_data_by_zip, by = "zip_code")
+  right_join(la_data_by_zip, by = "Zip")
 
 #find the correlation coefficient between restaurant price and median income
 median_price_coeff <- cor(zip_data_sublist$restaurant_price, zip_data_sublist$Median, 
@@ -179,12 +179,12 @@ zip_data_sublist %>%
 
 ```{r}
 la_choropleth_data <- la_data_by_zip #create a new dataframe for this test
-la_choropleth_data$zip_code <- as.character(la_choropleth_data$zip_code)
+la_choropleth_data$zip_code <- as.character(la_choropleth_data$Zip)
 
 #Choroplethr is a bit particular about the format the dataframe argument needs to be
 #in, so we have to do some cleaning: 
 la_choropleth_data <- la_choropleth_data %>% 
-  rename(region = zip_code, value = Median) %>% 
+  rename(region = Zip, value = Median) %>% 
   select(region, value)
 
 #Upon googling we find LA County's unique FIPS code: 06037
@@ -195,9 +195,9 @@ zip_choropleth(la_choropleth_data,
 
 ```{r}
 la_choropleth_data <- zip_data_sublist #overwrite the previous dataframe
-la_choropleth_data$zip_code <- as.character(la_choropleth_data$zip_code)
+la_choropleth_data$Zip <- as.character(la_choropleth_data$Zip)
 la_choropleth_data <- la_choropleth_data %>% 
-  rename(region = zip_code, value = restaurant_price) %>% 
+  rename(region = Zip, value = restaurant_price) %>% 
   select(region, value)
 zip_choropleth(la_choropleth_data, 
                county_zoom = 06037,

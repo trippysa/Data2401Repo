@@ -115,3 +115,90 @@ harris_masterlist <- harris_masterlist %>% rename(Zip = location.zip_code)
 ```
 
 Note: I guess 77507 is one zip code in harris county that doesn't have any demographic data. Hence why it shows up as black. 
+
+```{r}
+zip_restaurant_list = list()
+restaurant_list = list()
+
+#the following loop iterates through the list of valid zip codes
+#and sets the location query equal to each zip code in the list
+for(j in 1:length(cook_data_by_zip$Zip)){
+  zip_code_n <- cook_data_by_zip$Zip[j]
+  
+    query_params <- list(
+      term = "Restaurants",
+      location = zip_code_n, #zip code at position 'j' in the dataframe
+      sort_by = "distance",
+      limit = 50
+    )
+    response <- GET(
+      search_uri, 
+      query = query_params, 
+      add_headers(Authorization = paste("bearer", yelp_key))
+    )
+    response_text <- content(response, type = "text")
+    response_data <- fromJSON(response_text)
+    restaurants <- flatten(response_data$businesses)
+  
+    #each set of restaurants pulled is added to the restaurant list
+    restaurant_list[[j]] <- restaurants
+}
+```
+
+```{r}
+#take all of the data we've just extracted. Now bind it into one masterlist
+cook_masterlist <- bind_rows(restaurant_list) 
+
+#remove the duplicate restaurants (each restaurant should have a unique id)
+cook_masterlist <- cook_masterlist[!duplicated(cook_masterlist$id), ]
+
+#renaming the zip code column will make it so that we can join with the
+#harris_data_by_zip dataset later. We also set this variable's type to double 
+#for the same reason
+cook_masterlist <- cook_masterlist %>% rename(Zip = location.zip_code) 
+#masterlist$zip_code <- as.double(masterlist$zip_code) not needed I don't think..
+```
+
+Next is la county
+```{r}
+zip_restaurant_list = list()
+restaurant_list = list()
+
+#the following loop iterates through the list of valid zip codes
+#and sets the location query equal to each zip code in the list
+for(j in 1:length(la_data_by_zip$Zip)){
+  zip_code_n <- la_data_by_zip$Zip[j]
+  
+    query_params <- list(
+      term = "Restaurants",
+      location = zip_code_n, #zip code at position 'j' in the dataframe
+      sort_by = "distance",
+      limit = 50
+    )
+    response <- GET(
+      search_uri, 
+      query = query_params, 
+      add_headers(Authorization = paste("bearer", yelp_key))
+    )
+    response_text <- content(response, type = "text")
+    response_data <- fromJSON(response_text)
+    restaurants <- flatten(response_data$businesses)
+  
+    #each set of restaurants pulled is added to the restaurant list
+    restaurant_list[[j]] <- restaurants
+}
+```
+
+```{r}
+#take all of the data we've just extracted. Now bind it into one masterlist
+la_masterlist <- bind_rows(restaurant_list) 
+
+#remove the duplicate restaurants (each restaurant should have a unique id)
+la_masterlist <- la_masterlist[!duplicated(la_masterlist$id), ]
+
+#renaming the zip code column will make it so that we can join with the
+#harris_data_by_zip dataset later. We also set this variable's type to double 
+#for the same reason
+la_masterlist <- la_masterlist %>% rename(Zip = location.zip_code) 
+#masterlist$zip_code <- as.double(masterlist$zip_code) not needed I don't think..
+```
