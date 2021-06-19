@@ -26,3 +26,5 @@ final_presentation_backup.html
 figure
 #ignore final presentation
 final_presentation.html
+#ignore the test file
+test_project.Rmd

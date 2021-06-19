@@ -46,8 +46,7 @@ for (i in 1:length(zip_demographic_data$Zip)){
 ```
 
 ```{r}
-county_data_by_zip <- county_codes %>% 
-  filter(GEOID == "06037"| GEOID == "48201" | GEOID == "17031") %>% 
+county_data_by_zip <- county_codes %>%
   select(GEOID, ZCTA5) %>% 
   rename(Zip = ZCTA5)
 
