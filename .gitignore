@@ -28,3 +28,7 @@ figure
 final_presentation.html
 #ignore the test file
 test_project.Rmd
+#ignore the USCLAP pdf
+USCLAP_paper.pdf
+#ignore the USCLAP writeup
+USCLAP_paper.Rmd
